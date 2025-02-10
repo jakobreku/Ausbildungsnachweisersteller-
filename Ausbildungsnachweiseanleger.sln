@@ -1,25 +1,58 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35222.181
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ausbildungsnachweiseanleger", "Ausbildungsnachweiseanleger\Ausbildungsnachweiseanleger.csproj", "{6F4C2869-4250-4406-BBBD-337F884987F4}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{6F4C2869-4250-4406-BBBD-337F884987F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6F4C2869-4250-4406-BBBD-337F884987F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6F4C2869-4250-4406-BBBD-337F884987F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6F4C2869-4250-4406-BBBD-337F884987F4}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {C6BB7024-5317-4C29-9D66-3990D24A89CE}
-	EndGlobalSection
-EndGlobal
+using System;
+using System.IO;
+using ClosedXML.Excel;
+
+class Program
+{
+    static void Main()
+    {
+        string vorlagePfad = @"D:\Berghof\Ausbildungsnachweise\Vorlage.xlsx";
+        string speicherOrt = @"D:\Berghof\Ausbildungsnachweise";
+
+        // Benutzer gibt die letzte Ausbildungsnachweisnummer ein
+        Console.WriteLine("Geben Sie die letzte Ausbildungsnachweisnummer ein (z. B. 20):");
+        int letzteNummer = int.Parse(Console.ReadLine());
+
+        Console.WriteLine("Wie viele Ausbildungsnachweise sollen erstellt werden?");
+        int anzahlAusbildungsnachweise = int.Parse(Console.ReadLine());
+
+        Console.WriteLine("Geben Sie das Startdatum (z. B. 10.02.2025) ein:");
+        DateTime startDatum = DateTime.Parse(Console.ReadLine());
+
+        // Startnummer für den ersten Ausbildungsnachweis
+        int startNummer = letzteNummer + 1;
+
+        for (int i = startNummer; i < startNummer + anzahlAusbildungsnachweise; i++)
+        {
+            // Berechne den Montag der Woche für den aktuellen Ausbildungsnachweis
+            DateTime montagDerWoche = GetMontag(startDatum.AddDays(7 * (i - startNummer)));
+
+            string neuerDateiName = $"Ausbildungsnachweis_{i}.xlsx";  // Dateiname: Ausbildungsnachweis_1.xlsx, Ausbildungsnachweis_2.xlsx, etc.
+            string neuerPfad = Path.Combine(speicherOrt, neuerDateiName);
+
+            using (var workbook = new XLWorkbook(vorlagePfad))
+            {
+                // Wähle das zweite Arbeitsblatt (Index 1)
+                var worksheet = workbook.Worksheet(2);  // 1 ist das zweite Blatt
+
+                // Ausbildungsnachweisnummer und Datum eintragen
+                worksheet.Cell("J1").Value = $"{i}";  // Nummer des Nachweises
+                worksheet.Cell("G3").Value = montagDerWoche.ToString("dd.MM.yyyy"); // Startdatum der Woche (Montag)
+
+                // Datei speichern
+                workbook.SaveAs(neuerPfad);
+                Console.WriteLine($"Datei erstellt: {neuerDateiName}");
+            }
+        }
+
+        Console.WriteLine("Alle Ausbildungsnachweise wurden erfolgreich erstellt!");
+    }
+
+    // Methode, die den Montag der Woche berechnet
+    static DateTime GetMontag(DateTime datum)
+    {
+        int diff = datum.DayOfWeek - DayOfWeek.Monday;
+        if (diff < 0) diff += 7; // Wenn das Datum vor Montag liegt, gehe eine Woche zurück
+        return datum.AddDays(-diff).Date;  // Datum für den Montag dieser Woche
+    }
+}
